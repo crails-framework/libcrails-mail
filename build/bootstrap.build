@@ -1,0 +1,7 @@
+project = libcrails-mail
+
+using version
+using config
+using test
+using install
+using dist

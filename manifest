@@ -1,0 +1,13 @@
+: 1
+name: libcrails-mail
+version: 2.0.0
+summary: smtp library for the crails framework
+license: BSD-3-Clause
+description-file: README.md
+url: https://example.org/libcrails-mail
+email: michael@unetresgrossebite.com
+depends: * build2 >= 0.15.0
+depends: * bpkg >= 0.15.0
+depends: { libcrails libcrails-controllers libcrails-renderer libcrails-semantics } ^2.0.0
+depends: libbacktrace ^1.0.0
+depends: libboost-asio >= 1.74.0

@@ -1,0 +1,3 @@
+# libcrails-mail
+
+C++ library

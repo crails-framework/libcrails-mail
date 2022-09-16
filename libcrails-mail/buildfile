@@ -1,0 +1,37 @@
+import intf_libs += libcrails%lib{crails}
+import intf_libs += libcrails-controllers%lib{crails-controllers}
+import intf_libs += libcrails-renderer%lib{crails-renderer}
+import intf_libs += libcrails-semantics%lib{crails-semantics}
+
+lib{crails-mail}: {hxx ixx txx cxx}{**} $impl_libs $intf_libs
+
+hxx{version}: in{version} $src_root/manifest
+
+hxx{export}@./: cxx.importable = false
+
+# Build options.
+#
+cxx.poptions =+ "-I$out_root" "-I$src_root"
+
+{hbmia obja}{*}: cxx.poptions += -DLIBCRAILS_STATIC_BUILD
+{hbmis objs}{*}: cxx.poptions += -DLIBCRAILS_SHARED_BUILD
+
+lib{crails-mail}:
+{
+  cxx.export.poptions = "-I$out_root/libcrails-mail/" "-I$src_root/libcrails-mail/"
+  cxx.export.libs = $intf_libs
+}
+
+liba{crails-mail}: cxx.export.poptions += -DLIBCRAILS_STATIC
+libs{crails-mail}: cxx.export.poptions += -DLIBCRAILS_SHARED
+
+if $version.pre_release
+  lib{crails-mail}: bin.lib.version = "-$version.project_id"
+else
+  lib{crails-mail}: bin.lib.version = "-$version.major.$version.minor"
+
+{hxx ixx txx}{*}:
+{
+  install         = include/
+  install.subdirs = true
+}
