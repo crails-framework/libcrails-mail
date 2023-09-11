@@ -1,6 +1,7 @@
 #ifndef  BOOTS_SMTP_HPP
 # define BOOTS_SMTP_HPP
 
+# include <utility>
 # include <boost/asio.hpp>
 # include <boost/asio/ssl.hpp>
 # include <crails/utils/helpers.hpp>
