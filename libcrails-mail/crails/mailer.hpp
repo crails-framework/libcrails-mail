@@ -7,22 +7,23 @@
 
 namespace Crails
 {
-  class Mailer
+  class Mailer : public std::enable_shared_from_this<Mailer>
   {
   public:
     Mailer(Controller& controller, const std::string& configuration);
     Mailer(const std::string& configuration);
 
     void render(const std::string& view);
-    void send(void);
+    void send(std::function<void()> callback);
 
   protected:
+    std::shared_ptr<Smtp::Server> smtp_server;
     Smtp::Mail   mail;
     SharedVars   vars;
     DataTree     params, response;
 
   private:
-    Controller* controller;
+    std::shared_ptr<Controller> controller;
     std::string configuration;
     bool        is_connected;
   };

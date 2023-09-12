@@ -5,12 +5,20 @@
 using namespace std;
 using namespace Crails;
 
-Mailer::Mailer(Controller& controller, const std::string& configuration) : controller(&controller), configuration(configuration), is_connected(false)
+Mailer::Mailer(Controller& controller, const std::string& configuration) :
+  controller(
+    controller.shared_from_this(),
+    reinterpret_cast<Controller*>(controller.shared_from_this().get())
+  ),
+  configuration(configuration),
+  is_connected(false)
 {
+  smtp_server = std::make_shared<Smtp::Server>();
 }
 
-Mailer::Mailer(const std::string& configuration) : controller(0), configuration(configuration), is_connected(false)
+Mailer::Mailer(const std::string& configuration) : configuration(configuration), is_connected(false)
 {
+  smtp_server = std::make_shared<Smtp::Server>();
 }
 
 void Mailer::render(const std::string& view)
@@ -22,14 +30,28 @@ void Mailer::render(const std::string& view)
   Renderer::render(view, params.as_data(), mail, vars);
 }
 
-void Mailer::send(void)
+void Mailer::send(std::function<void()> callback)
 {
-  auto servers = MailServers::singleton::get();
-  auto smtp_server = std::make_shared<Smtp::Server>();
-
-  servers->configure_mail_server(configuration, *smtp_server);
-  smtp_server->send(mail, []()
+  auto self = shared_from_this();
+  auto send = [this, self, callback]()
   {
-    logger << Logger::Debug << "Crails::Mailer::send: mail sent" << Logger::endl;
-  });
+    smtp_server->send(mail, [self, callback]()
+    {
+      logger << Logger::Debug << "Crails::Mailer::send: mail sent" << Logger::endl;
+      callback();
+    });
+  };
+
+  if (!is_connected)
+  {
+    auto servers = MailServers::singleton::get();
+
+    servers->configure_mail_server(configuration, *smtp_server, [this, send]()
+    {
+      is_connected = true;
+      send();
+    });
+  }
+  else
+    send();
 }

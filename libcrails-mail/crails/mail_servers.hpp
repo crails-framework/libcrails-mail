@@ -19,7 +19,7 @@ namespace Crails
     public:
       Conf();
 
-      void connect_server(Smtp::Server& server) const;
+      void connect_server(Smtp::Server& server, std::function<void()> callback) const;
 
     private:
       std::string                          hostname;
@@ -31,7 +31,7 @@ namespace Crails
     };
     typedef std::map<std::string, Conf> List;
 
-    void configure_mail_server(const std::string& conf_name, Smtp::Server& server) const;
+    void configure_mail_server(const std::string& conf_name, Smtp::Server& server, std::function<void()> callback) const;
 
   private:
     MailServers(void);
