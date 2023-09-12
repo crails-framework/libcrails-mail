@@ -1,6 +1,7 @@
 #include <crails/utils/backtrace.hpp>
 #include <crails/utils/base64.hpp>
 #include <crails/server.hpp>
+#include <crails/logger.hpp>
 #include <boost/array.hpp>
 #include "smtp.hpp"
 
@@ -61,10 +62,12 @@ void Smtp::Server::connect(const std::string& hostname, unsigned short port)
   tcp::resolver::iterator   endpoint_iterator = resolver.resolve(query);
   tcp::resolver::iterator   end;
 
+  logger << Logger::Debug << "Crails::Smtp::Server::connect to " << hostname << ':' << port << Logger::endl;
   while (error && endpoint_iterator != end)
   {
     sock.close();
     sock.connect(*endpoint_iterator++, error);
+    logger << "Crails::Smtp::Server::connect: connected to endpoint iterator" << Logger::endl;
   }
   if (error)
     throw boost_ext::runtime_error("Cannot connect to " + hostname);
@@ -98,6 +101,7 @@ std::string Smtp::Server::smtp_read_answer(unsigned short expected_return)
   std::string    answer;
   unsigned short return_value;
 
+  logger << Logger::Debug << "Crails::Smtp::Server::smtp_read_answer: expecting " << expected_return << Logger::endl;
   // NetworkRead
   {
     boost::array<char,256> buffer;
@@ -109,9 +113,10 @@ std::string Smtp::Server::smtp_read_answer(unsigned short expected_return)
     bytes_received = sock.receive(boost::asio::buffer(buffer));
 
     if (bytes_received == 0)
-      throw boost_ext::runtime_error("The server closed the connection");
+      throw boost_ext::runtime_error("SMTP server closed the connection");
     std::copy(buffer.begin(), buffer.begin() + bytes_received, std::back_inserter(answer));
   }
+  logger << Logger::Debug << "Crails::Smtp::Server::smtp_read_answer: answer received: " << answer << Logger::endl;
   //
   return_value = atoi(answer.substr(0, 3).c_str());
   if (return_value != expected_return)
@@ -130,10 +135,12 @@ void Smtp::Server::smtp_write_message()
   const string str    = server_message.str();
   auto         buffer = boost::asio::buffer(str);
 
+  logger << Logger::Debug << "Crails::Smtp::Server::smtp_write_message: " << str << Logger::endl;
   if (tls_enabled)
     ssl_sock.write_some(buffer, error);
   else
     sock.write_some(buffer, error);
+  logger << "Crails::Smtp::Server::smtp_write_message: message written" << Logger::endl;
   server_message.str(std::string());
 }
 
@@ -220,11 +227,13 @@ void Smtp::Server::smtp_new_mail(const Smtp::Mail& mail)
 
 void Smtp::Server::smtp_handshake()
 {
+  logger << Logger::Debug << "Crails::Smtp::Server::smtp_handshake" << Logger::endl;
   // Receiving the server identification
   if (tls_enabled)
   {
     boost::system::error_code error;
 
+    logger << "Crails::Smtp::Server::smtp_handshake with tls enabled" << Logger::endl;
     tls_enabled = false;
     server_id = smtp_read_answer(220);
     server_message << "HELO " << sock.remote_endpoint().address().to_string() << "\r\n";
