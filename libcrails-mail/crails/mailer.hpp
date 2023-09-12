@@ -22,10 +22,9 @@ namespace Crails
     DataTree     params, response;
 
   private:
-    Controller*   controller;
-    std::string   configuration;
-    Smtp::Server  smtp_server;
-    bool          is_connected;
+    Controller* controller;
+    std::string configuration;
+    bool        is_connected;
   };
 }
 

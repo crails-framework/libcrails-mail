@@ -1,5 +1,6 @@
 #include "mailer.hpp"
 #include <crails/renderer.hpp>
+#include <crails/logger.hpp>
 
 using namespace std;
 using namespace Crails;
@@ -23,10 +24,12 @@ void Mailer::render(const std::string& view)
 
 void Mailer::send(void)
 {
-  if (!is_connected)
+  auto servers = MailServers::singleton::get();
+  auto smtp_server = std::make_shared<Smtp::Server>();
+
+  servers->configure_mail_server(configuration, *smtp_server);
+  smtp_server->send(mail, []()
   {
-    MailServers::singleton::get()->configure_mail_server(configuration, smtp_server);
-    is_connected = true;
-  }
-  smtp_server.send(mail);
+    logger << Logger::Debug << "Crails::Mailer::send: mail sent" << Logger::endl;
+  });
 }

@@ -62,7 +62,7 @@ namespace Smtp
     std::string content_type;
   };
 
-  class Server
+  class Server : public std::enable_shared_from_this<Server>
   {
   public:
     typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> SslSocket;
@@ -82,7 +82,7 @@ namespace Smtp
     void connect(const std::string& hostname, unsigned short port);
     void connect(const std::string& hostname, unsigned short port, const std::string& username, const std::string& password, AuthenticationProtocol auth = PLAIN);
     void disconnect();
-    void send(const Mail& mail);
+    void send(const Mail& mail, std::function<void()> callback);
     const_attr_getter(std::string&, server_id)
 
   private:

@@ -3,6 +3,7 @@
 #include <crails/server.hpp>
 #include <crails/logger.hpp>
 #include <boost/array.hpp>
+#include <thread>
 #include "smtp.hpp"
 
 using namespace std;
@@ -86,11 +87,17 @@ void Smtp::Server::disconnect(void)
   sock.close();
 }
 
-void Smtp::Server::send(const Smtp::Mail& mail)
+void Smtp::Server::send(const Smtp::Mail& mail, std::function<void()> callback)
 {
-  smtp_new_mail(mail);
-  smtp_recipients(mail);
-  smtp_body(mail);
+  auto self_reference = shared_from_this();
+
+  std::thread{[this, self_reference, mail, callback]()
+  {
+    smtp_new_mail(mail);
+    smtp_recipients(mail);
+    smtp_body(mail);
+    callback();
+  }}.detach();
 }
 
 /*
