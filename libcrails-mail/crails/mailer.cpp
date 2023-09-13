@@ -13,12 +13,18 @@ Mailer::Mailer(Controller& controller, const std::string& configuration) :
   configuration(configuration),
   is_connected(false)
 {
-  smtp_server = std::make_shared<Smtp::Server>();
+  create_server();
 }
 
 Mailer::Mailer(const std::string& configuration) : configuration(configuration), is_connected(false)
 {
+  create_server();
+}
+
+void Mailer::create_server()
+{
   smtp_server = std::make_shared<Smtp::Server>();
+  smtp_server->set_error_callback(std::bind(&Mailer::on_error_occured, this, std::placeholders::_1));
 }
 
 void Mailer::render(const std::string& view)
@@ -54,4 +60,8 @@ void Mailer::send(std::function<void()> callback)
   }
   else
     send();
+}
+
+void Mailer::on_error_occured(const std::exception& error)
+{
 }

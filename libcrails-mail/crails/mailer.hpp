@@ -23,7 +23,11 @@ namespace Crails
     SharedVars   vars;
     DataTree     params, response;
 
+    virtual void on_error_occured(const std::exception&);
+
   private:
+    void create_server();
+
     std::shared_ptr<Controller> controller;
     std::string configuration;
     bool        is_connected;

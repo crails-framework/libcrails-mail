@@ -73,6 +73,45 @@ void Smtp::Server::send(const Smtp::Mail& mail, std::function<void()> callback)
   });
 }
 
+void Smtp::Server::report_error(const std::exception& error) const
+{
+  logger << Logger::Error << "Smtp::Server: error occured: " << error.what() << Logger::endl;
+  if (on_error)
+  {
+    try
+    {
+      on_error(error);
+    }
+    catch (const std::exception& new_error)
+    {
+      logger << Logger::Error << "Smtp::Server: error occured in error handler: " << new_error.what() << Logger::endl;
+    }
+    catch (...)
+    {
+      logger << Logger::Error << "Smtp::Server: error occured in error handler: unknown" << Logger::endl;
+    }
+  }
+}
+
+Smtp::Server::AsyncHandler Smtp::Server::protect_handler(AsyncHandler handler) const
+{
+  return [this, handler](const boost::system::error_code& error, std::size_t bytes_received)
+  {
+    try
+    {
+      handler(error, bytes_received);
+    }
+    catch (const std::exception& error)
+    {
+      report_error(error);
+    }
+    catch (...)
+    {
+      report_error(std::runtime_error("unknown exception"));
+    }
+  };
+}
+
 /*
  * SMTP Protocol Implementation (RFC 5321)
  */
@@ -106,9 +145,9 @@ void Smtp::Server::smtp_read_answer(unsigned short expected_return, std::functio
 
   logger << Logger::Debug << "Crails::Smtp::Server::smtp_read_answer: expecting " << expected_return << Logger::endl;
   if (tls_enabled)
-    ssl_sock.async_read_some(boost::asio::buffer(*buffer), handler);
+    ssl_sock.async_read_some(boost::asio::buffer(*buffer), protect_handler(handler));
   else
-    sock.async_receive(boost::asio::buffer(*buffer), handler);
+    sock.async_receive(boost::asio::buffer(*buffer), protect_handler(handler));
 }
 
 void Smtp::Server::smtp_write_message(std::function<void()> callback)
@@ -125,9 +164,9 @@ void Smtp::Server::smtp_write_message(std::function<void()> callback)
 
   logger << Logger::Debug << "Crails::Smtp::Server::smtp_write_message:\n" << send_buffer << Logger::endl;
   if (tls_enabled)
-    ssl_sock.async_write_some(buffer, handler);
+    ssl_sock.async_write_some(buffer, protect_handler(handler));
   else
-    sock.async_write_some(buffer, handler);
+    sock.async_write_some(buffer, protect_handler(handler));
 }
 
 void Smtp::Server::smtp_write_and_read(unsigned short expected_return, std::function<void(std::string)> callback)

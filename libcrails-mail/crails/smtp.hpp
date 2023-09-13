@@ -13,6 +13,8 @@ namespace Smtp
   {
   public:
     typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> SslSocket;
+    typedef std::function<void(const std::exception&)> ErrorCallback;
+    typedef std::function<void(const boost::system::error_code&, std::size_t)> AsyncHandler;
 
     enum AuthenticationProtocol
     {
@@ -31,6 +33,7 @@ namespace Smtp
     void disconnect();
     void send(const Mail& mail, std::function<void()> callback);
     const_attr_getter(std::string&, server_id)
+    void set_error_callback(ErrorCallback value) { on_error = value; }
 
   private:
     // SMTP Protocol Implementation
@@ -48,6 +51,8 @@ namespace Smtp
 
     void smtp_data_address(const std::string& field, const std::string& address, const std::string& name);
     void smtp_data_addresses(const std::string& field, const Mail& mail, int flag);
+    void report_error(const std::exception&) const;
+    AsyncHandler protect_handler(AsyncHandler) const;
 
     std::string                   username;
     std::string                   server_id;
@@ -57,6 +62,7 @@ namespace Smtp
     boost::asio::ip::tcp::socket& sock;
     bool                          tls_enabled;
     std::string                   send_buffer;
+    ErrorCallback                 on_error;
 
     // Authentication Extension as defined in RFC 2554
     typedef void (Server::*SmtpAuthMethod)(const std::string& user, const std::string& password, std::function<void()>);
