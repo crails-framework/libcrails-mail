@@ -40,6 +40,7 @@ void Smtp::Server::connect(const std::string& hostname, unsigned short port, std
 
 void Smtp::Server::connect(const std::string& hostname, unsigned short port, const std::string& username, const std::string& password, AuthenticationProtocol protocol, std::function<void()> callback)
 {
+  this->username = username;
   this->connect(hostname, port, [this, username, password, protocol, callback]()
   {
     (this->*auth_methods[protocol])(username, password, callback);
@@ -90,7 +91,7 @@ void Smtp::Server::smtp_read_answer(unsigned short expected_return, std::functio
       throw boost_ext::runtime_error("SMTP server closed the connection");
     }
     std::copy(buffer->begin(), buffer->begin() + bytes_received, std::back_inserter(answer));
-    logger << Logger::Debug << "Crails::Smtp::Server::smtp_read_answer: answer received: " << answer << Logger::endl;
+    logger << Logger::Debug << "Crails::Smtp::Server::smtp_read_answer: answer received:\n" << answer << Logger::endl;
 
     return_value = atoi(answer.substr(0, 3).c_str());
     if (return_value != expected_return)
@@ -122,7 +123,7 @@ void Smtp::Server::smtp_write_message(std::function<void()> callback)
     callback();
   };
 
-  logger << Logger::Debug << "Crails::Smtp::Server::smtp_write_message: " << send_buffer << Logger::endl;
+  logger << Logger::Debug << "Crails::Smtp::Server::smtp_write_message:\n" << send_buffer << Logger::endl;
   if (tls_enabled)
     ssl_sock.async_write_some(buffer, handler);
   else
@@ -143,19 +144,26 @@ void Smtp::Server::smtp_body(const Smtp::Mail& mail, std::function<void()> callb
   server_message << "DATA\r\n";
   smtp_write_and_read(354, [this, &mail, callback](std::string)
   {
+    Mail::Sender sender = mail.get_sender();
+
+    if (sender.address.length() == 0)
+      sender.address = username;
     // Setting the headers
     smtp_data_addresses("To",       mail, 0);
     smtp_data_addresses("Cc",       mail, Smtp::Mail::CarbonCopy);
     smtp_data_addresses("Bcc",      mail, Smtp::Mail::CarbonCopy | Smtp::Mail::Blind);
     if (mail.get_reply_to() != "")
-      smtp_data_address("Reply-To", mail.get_reply_to(),       "");
-    smtp_data_address  ("From",     mail.get_sender().address, mail.get_sender().name);
+      smtp_data_address("Reply-To", mail.get_reply_to(), "");
+    smtp_data_address  ("From",     sender.address, sender.name);
     // Send the content type if necessary
     if (mail.get_content_type() != "")
     {
       server_message << "MIME-Version: 1.0\r\n";
       server_message << "Content-Type: " << mail.get_content_type() << "\r\n";
     }
+    // Send a message-id if possible
+    if (mail.get_id() != "")
+      server_message << "Message-Id: " << mail.get_id() << "\r\n";
     // Send the subject
     server_message << "Subject: " << mail.get_subject() << "\r\n";
     // Send the body and finish the DATA stream
@@ -193,10 +201,7 @@ void Smtp::Server::smtp_data_addresses(const std::string& field, const Smtp::Mai
 
 void Smtp::Server::smtp_data_address(const std::string& field, const std::string& address, const std::string& name)
 {
-  server_message << field << ": " << name;
-  if (name.size() > 0)
-    server_message << " <" << address << ">";
-  server_message << "\r\n";
+  server_message << field << ": " << name << " <" << address << ">\r\n";
 }
 
 void Smtp::Server::smtp_recipients(const Smtp::Mail& mail, std::function<void()> callback)
