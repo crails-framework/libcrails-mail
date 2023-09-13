@@ -49,6 +49,7 @@ namespace Smtp
     void smtp_data_address(const std::string& field, const std::string& address, const std::string& name);
     void smtp_data_addresses(const std::string& field, const Mail& mail, int flag);
 
+    std::string                   username;
     std::string                   server_id;
     std::stringstream             server_message;
     boost::asio::ssl::context     ssl_context;

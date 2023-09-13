@@ -4,6 +4,7 @@
 # include <crails/utils/helpers.hpp>
 # include <crails/render_target.hpp>
 # include <sstream>
+# include <vector>
 
 namespace Smtp
 {

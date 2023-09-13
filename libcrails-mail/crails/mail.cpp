@@ -1,4 +1,5 @@
 #include "mail.hpp"
+#include <algorithm>
 
 using namespace std;
 using namespace Crails;
