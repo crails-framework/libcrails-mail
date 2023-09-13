@@ -17,6 +17,8 @@ namespace Smtp
     struct Recipient
     {
       Recipient() : type(0) {}
+      Recipient(const std::string& address, unsigned char type = 0) : address(address), type(type) {}
+      Recipient(const std::string& address, const std::string& name, unsigned char type = 0) : address(address), name(name), type(type) {}
 
       bool          operator==(const std::string& address) const { return (this->address == address); }
       std::string   address;
@@ -48,6 +50,7 @@ namespace Smtp
     const_attr_accessor(std::string&, subject)
     const_attr_accessor(std::string&, reply_to)
     const_attr_accessor(std::string&, content_type)
+    const_attr_accessor(Recipients&,  recipients);
 
     const std::string& get_body() const { return body; }
 

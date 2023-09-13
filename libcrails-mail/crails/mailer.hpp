@@ -14,7 +14,8 @@ namespace Crails
     Mailer(const std::string& configuration);
 
     void render(const std::string& view);
-    void send(std::function<void()> callback);
+    void send(std::function<void()>);
+    void set_recipients(const std::vector<Smtp::Mail::Recipient>& recipients) { mail.set_recipients(recipients); }
 
   protected:
     std::shared_ptr<Smtp::Server> smtp_server;
