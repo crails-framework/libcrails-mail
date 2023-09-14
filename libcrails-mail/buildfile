@@ -2,6 +2,7 @@ import intf_libs += libcrails%lib{crails}
 import intf_libs += libcrails-controllers%lib{crails-controllers}
 import intf_libs += libcrails-renderer%lib{crails-renderer}
 import intf_libs += libcrails-semantics%lib{crails-semantics}
+import intf_libs += libcrails-encrypt%lib{crails-encrypt}
 
 lib{crails-mail}: {hxx ixx txx cxx}{**} $impl_libs $intf_libs
 

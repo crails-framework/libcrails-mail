@@ -2,6 +2,7 @@
 #include <crails/utils/base64.hpp>
 #include <crails/server.hpp>
 #include <crails/logger.hpp>
+#include <crails/md5.hpp>
 #include <boost/array.hpp>
 #include <thread>
 #include "smtp.hpp"
@@ -130,6 +131,7 @@ void Smtp::Server::smtp_read_answer(unsigned short expected_return, std::functio
       throw boost_ext::runtime_error("SMTP server closed the connection");
     }
     std::copy(buffer->begin(), buffer->begin() + bytes_received, std::back_inserter(answer));
+    answer = answer.substr(0, answer.find_last_of("\r\n") - 1);
     logger << Logger::Debug << "Crails::Smtp::Server::smtp_read_answer: answer received:\n" << answer << Logger::endl;
 
     return_value = atoi(answer.substr(0, 3).c_str());
@@ -140,6 +142,7 @@ void Smtp::Server::smtp_read_answer(unsigned short expected_return, std::functio
       error_message << "Expected answer status to be " << expected_return << ", received `" << answer << '`';
       throw boost_ext::runtime_error(error_message.str());
     }
+    answer = answer.substr(4);
     callback(answer);
   };
 
@@ -289,7 +292,7 @@ void Smtp::Server::smtp_handshake(std::function<void()> callback)
           boost::system::error_code error;
           ssl_sock.handshake(SslSocket::client, error);
           tls_enabled = true;
-	  smtp_handshake_end(callback);
+          smtp_handshake_end(callback);
         });
       });
     });
@@ -310,6 +313,16 @@ void Smtp::Server::smtp_handshake_end(std::function<void()> callback)
   smtp_write_and_read(250, [this, callback](std::string)
   {
     logger << Logger::Debug << "Crails::Smtp::Server::smtp_handshake over" << Logger::endl;
+    smtp_ehlo(callback);
+  });
+}
+
+void Smtp::Server::smtp_ehlo(std::function<void()> callback)
+{
+  server_message << "EHLO " << sock.remote_endpoint().address().to_string() << "\r\n";
+  smtp_write_and_read(250, [this, callback](std::string answer)
+  {
+    logger << Logger::Debug << "Crails::Smtp::Server::EHLO: " << answer << Logger::endl;
     callback();
   });
 }
@@ -363,18 +376,22 @@ void Smtp::Server::smtp_auth_login(const std::string& user, const std::string& p
   string pswd_hash = base64_encode(password);
 
   server_message << "AUTH LOGIN\r\n";
-  smtp_write_and_read(334, [this, user_hash, pswd_hash, callback](std::string)
-  {
+  smtp_write_and_read(334, std::bind(&Server::smtp_auth_login_step, this, user_hash, pswd_hash, std::placeholders::_1, 1, callback));
+}
+
+void Smtp::Server::smtp_auth_login_step(std::string user_hash, std::string pswd_hash, std::string answer, int step, std::function<void()> callback)
+{
+  if (answer == "UGFzc3dvcmQ6")
+    server_message << pswd_hash;
+  else if (answer == "VXNlcm5hbWU6")
     server_message << user_hash;
-    smtp_write_and_read(334, [this, pswd_hash, callback](std::string)
-    {
-      server_message << pswd_hash;
-      smtp_write_and_read(235, [this, callback](std::string)
-      {
-        callback();
-      });
-    });
-  });
+  else
+    throw std::runtime_error("Received unknown request from smtp server during login request: " + base64_decode(answer));
+  server_message << "\r\n";
+  if (step < 2)
+    smtp_write_and_read(334, std::bind(&Server::smtp_auth_login_step, this, user_hash, pswd_hash, std::placeholders::_1, step + 1, callback));
+  else
+    smtp_write_and_read(235, [this, callback](std::string) { callback(); });
 }
 
 void Smtp::Server::smtp_auth_md5(const std::string& user, const std::string& password, std::function<void()>)
@@ -387,9 +404,21 @@ void Smtp::Server::smtp_auth_digest_md5(const string& user, const string& passwo
   throw std::runtime_error("unsupported smtp_auth_digest_md5");
 }
 
-void Smtp::Server::smtp_auth_cram_md5(const string& user, const string& password, std::function<void()>)
+void Smtp::Server::smtp_auth_cram_md5(const string& user, const string& password, std::function<void()> callback)
 {
-  throw std::runtime_error("unsupported smt_auth_cram_md5");
+  server_message << "AUTH CRAM-MD5\r\n";
+  smtp_write_and_read(334, [this, user, password, callback](std::string base64_challenge)
+  {
+    std::string challenge = base64_decode(base64_challenge);
+    std::string hash = HmacMd5Digest(password, challenge).to_string();
+
+    hash = user + ' ' + hash;
+    server_message << base64_encode(hash) << "\r\n";
+    smtp_write_and_read(235, [this, callback](std::string)
+    {
+      callback();
+    });
+  });
 }
 
 // END SMTP AUTHENTICATION EXTENSION

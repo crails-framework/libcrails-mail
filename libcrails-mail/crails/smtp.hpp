@@ -42,6 +42,7 @@ namespace Smtp
     void smtp_write_message(std::function<void()> callback);
     void smtp_write_and_read(std::function<void(std::string)> callback) { smtp_write_and_read(250, callback); }
     void smtp_write_and_read(unsigned short expected_return, std::function<void(std::string)> callback);
+    void smtp_ehlo(std::function<void()>);
     void smtp_body(const Mail& mail, std::function<void()>);
     void smtp_recipients(const Mail& mail, std::function<void()>);
     void smtp_new_mail(const Mail& mail, std::function<void()>);
@@ -66,11 +67,13 @@ namespace Smtp
 
     // Authentication Extension as defined in RFC 2554
     typedef void (Server::*SmtpAuthMethod)(const std::string& user, const std::string& password, std::function<void()>);
-    void        smtp_auth_plain     (const std::string&, const std::string&, std::function<void()>);
-    void        smtp_auth_login     (const std::string&, const std::string&, std::function<void()>);
-    void        smtp_auth_digest_md5(const std::string&, const std::string&, std::function<void()>);
-    void        smtp_auth_md5       (const std::string&, const std::string&, std::function<void()>);
-    void        smtp_auth_cram_md5  (const std::string&, const std::string&, std::function<void()>);
+    void smtp_auth_plain     (const std::string&, const std::string&, std::function<void()>);
+    void smtp_auth_login     (const std::string&, const std::string&, std::function<void()>);
+    void smtp_auth_digest_md5(const std::string&, const std::string&, std::function<void()>);
+    void smtp_auth_md5       (const std::string&, const std::string&, std::function<void()>);
+    void smtp_auth_cram_md5  (const std::string&, const std::string&, std::function<void()>);
+
+    void smtp_auth_login_step(std::string, std::string, std::string, int, std::function<void()>);
 
     static std::map<AuthenticationProtocol,SmtpAuthMethod> auth_methods;
   };
