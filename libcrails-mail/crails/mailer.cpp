@@ -23,8 +23,8 @@ Mailer::Mailer(const std::string& configuration) : configuration(configuration),
 
 void Mailer::create_server()
 {
-  smtp_server = std::make_shared<Smtp::Server>();
-  smtp_server->set_error_callback(std::bind(&Mailer::on_error_occured, this, std::placeholders::_1));
+  service = MailServers::singleton::require().create(configuration);
+  service->set_error_callback(std::bind(&Mailer::on_error_occured, this, std::placeholders::_1));
 }
 
 void Mailer::render(const std::string& view)
@@ -38,28 +38,10 @@ void Mailer::render(const std::string& view)
 
 void Mailer::send(std::function<void()> callback)
 {
-  auto self = shared_from_this();
-  auto send = [this, self, callback]()
+  service->connect([this, callback]()
   {
-    smtp_server->send(mail, [self, callback]()
-    {
-      logger << Logger::Debug << "Crails::Mailer::send: mail sent" << Logger::endl;
-      callback();
-    });
-  };
-
-  if (!is_connected)
-  {
-    auto servers = MailServers::singleton::get();
-
-    servers->configure_mail_server(configuration, *smtp_server, [this, send]()
-    {
-      is_connected = true;
-      send();
-    });
-  }
-  else
-    send();
+    service->send(mail, [this, callback]() { callback(); });
+  });
 }
 
 void Mailer::on_error_occured(const std::exception& error)

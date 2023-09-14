@@ -15,13 +15,13 @@ namespace Crails
 
     void render(const std::string& view);
     void send(std::function<void()>);
-    void set_recipients(const std::vector<Smtp::Mail::Recipient>& recipients) { mail.set_recipients(recipients); }
+    void set_recipients(const std::vector<Mail::Recipient>& recipients) { mail.set_recipients(recipients); }
 
   protected:
-    std::shared_ptr<Smtp::Server> smtp_server;
-    Smtp::Mail   mail;
-    SharedVars   vars;
-    DataTree     params, response;
+    std::shared_ptr<MailServiceInterface> service;
+    Mail       mail;
+    SharedVars vars;
+    DataTree   params, response;
 
     virtual void on_error_occured(const std::exception&);
 

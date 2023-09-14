@@ -50,23 +50,19 @@ void Smtp::Server::connect(const std::string& hostname, unsigned short port, con
 
 void Smtp::Server::disconnect(void)
 {
-  auto self = shared_from_this();
-
-  smtp_quit([this, self]()
+  smtp_quit([this]()
   {
     sock.close();
   });
 }
 
-void Smtp::Server::send(const Smtp::Mail& mail, std::function<void()> callback)
+void Smtp::Server::send(const Mail& mail, std::function<void()> callback)
 {
-  auto self = shared_from_this();
-
-  smtp_new_mail(mail, [this, self, callback, &mail]()
+  smtp_new_mail(mail, [this, callback, &mail]()
   {
-    smtp_recipients(mail, [this, self, callback, &mail]()
+    smtp_recipients(mail, [this, callback, &mail]()
     {
-      smtp_body(mail, [this, self, callback]()
+      smtp_body(mail, [this, callback]()
       {
         callback();
       });
@@ -118,9 +114,8 @@ Smtp::Server::AsyncHandler Smtp::Server::protect_handler(AsyncHandler handler) c
  */
 void Smtp::Server::smtp_read_answer(unsigned short expected_return, std::function<void(std::string)> callback)
 {
-  auto self = shared_from_this();
   auto buffer = std::make_shared<boost::array<char,256>>();
-  auto handler = [this, self, expected_return, buffer, callback](const boost::system::error_code& error, std::size_t bytes_received)
+  auto handler = [this, expected_return, buffer, callback](const boost::system::error_code& error, std::size_t bytes_received)
   {
     std::string    answer;
     unsigned short return_value;
@@ -156,9 +151,8 @@ void Smtp::Server::smtp_read_answer(unsigned short expected_return, std::functio
 void Smtp::Server::smtp_write_message(std::function<void()> callback)
 {
   send_buffer = server_message.str();
-  auto self    = shared_from_this();
   auto buffer  = boost::asio::buffer(send_buffer);
-  auto handler = [this, self, callback](const boost::system::error_code& error, std::size_t)
+  auto handler = [this, callback](const boost::system::error_code& error, std::size_t)
   {
     logger << "Crails::Smtp::Server::smtp_write_message: message written: " << error << Logger::endl;
     server_message.str(std::string());
@@ -180,7 +174,7 @@ void Smtp::Server::smtp_write_and_read(unsigned short expected_return, std::func
   });
 }
 
-void Smtp::Server::smtp_body(const Smtp::Mail& mail, std::function<void()> callback)
+void Smtp::Server::smtp_body(const Mail& mail, std::function<void()> callback)
 {
   // Notify that we're starting the DATA stream
   server_message << "DATA\r\n";
@@ -192,8 +186,8 @@ void Smtp::Server::smtp_body(const Smtp::Mail& mail, std::function<void()> callb
       sender.address = username;
     // Setting the headers
     smtp_data_addresses("To",       mail, 0);
-    smtp_data_addresses("Cc",       mail, Smtp::Mail::CarbonCopy);
-    smtp_data_addresses("Bcc",      mail, Smtp::Mail::CarbonCopy | Smtp::Mail::Blind);
+    smtp_data_addresses("Cc",       mail, Mail::CarbonCopy);
+    smtp_data_addresses("Bcc",      mail, Mail::CarbonCopy | Mail::Blind);
     if (mail.get_reply_to() != "")
       smtp_data_address("Reply-To", mail.get_reply_to(), "");
     smtp_data_address  ("From",     sender.address, sender.name);
@@ -209,7 +203,7 @@ void Smtp::Server::smtp_body(const Smtp::Mail& mail, std::function<void()> callb
     // Send the subject
     server_message << "Subject: " << mail.get_subject() << "\r\n";
     // Send the body and finish the DATA stream
-    server_message << mail.body   << "\r\n.\r\n";
+    server_message << mail.get_body() << "\r\n.\r\n";
     smtp_write_and_read([this, callback](std::string)
     {
       callback();
@@ -217,10 +211,10 @@ void Smtp::Server::smtp_body(const Smtp::Mail& mail, std::function<void()> callb
   });
 }
 
-void Smtp::Server::smtp_data_addresses(const std::string& field, const Smtp::Mail& mail, int flag)
+void Smtp::Server::smtp_data_addresses(const std::string& field, const Mail& mail, int flag)
 {
-  auto it  = mail.recipients.begin();
-  auto end = mail.recipients.end();
+  auto it  = mail.get_recipients().begin();
+  auto end = mail.get_recipients().end();
   int  i   = 0;
 
   for (; it != end ; ++it)
@@ -246,10 +240,10 @@ void Smtp::Server::smtp_data_address(const std::string& field, const std::string
   server_message << field << ": " << name << " <" << address << ">\r\n";
 }
 
-void Smtp::Server::smtp_recipients(const Smtp::Mail& mail, std::function<void()> callback)
+void Smtp::Server::smtp_recipients(const Mail& mail, std::function<void()> callback)
 {
-  auto it  = mail.recipients.begin();
-  auto end = mail.recipients.end();
+  auto it  = mail.get_recipients().begin();
+  auto end = mail.get_recipients().end();
   
   for (; it != end ; ++it)
   {
@@ -261,9 +255,9 @@ void Smtp::Server::smtp_recipients(const Smtp::Mail& mail, std::function<void()>
   }
 }
 
-void Smtp::Server::smtp_new_mail(const Smtp::Mail& mail, std::function<void()> callback)
+void Smtp::Server::smtp_new_mail(const Mail& mail, std::function<void()> callback)
 {
-  const Smtp::Mail::Sender& sender = mail.get_sender();
+  const Mail::Sender& sender = mail.get_sender();
 
   server_message << "MAIL FROM: <" << sender.address << ">\r\n";
   smtp_write_and_read([this, callback](std::string)

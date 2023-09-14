@@ -9,19 +9,31 @@ namespace Crails
 {
   class MailServer;
 
+  struct MailServiceInterface
+  {
+    virtual ~MailServiceInterface() {}
+    virtual void connect(std::function<void()> callback) = 0;
+    virtual void send(const Mail&, std::function<void()> callback) = 0;
+    virtual void send_batch(std::vector<Mail>, std::function<void()> callback) = 0;
+    virtual void set_error_callback(std::function<void(const std::exception&)>) = 0;
+  };
+
   class MailServers
   {
     SINGLETON(MailServers)
   public:
+    enum Backend
+    {
+      SMTP,
+      MailGun
+    };
+
     class Conf
     {
-      friend class MailServer;
     public:
       Conf();
 
-      void connect_server(Smtp::Server& server, std::function<void()> callback) const;
-
-    private:
+      Backend                              backend;
       std::string                          hostname;
       unsigned short                       port;
       bool                                 use_authentication, use_tls;
@@ -31,7 +43,8 @@ namespace Crails
     };
     typedef std::map<std::string, Conf> List;
 
-    void configure_mail_server(const std::string& conf_name, Smtp::Server& server, std::function<void()> callback) const;
+    std::shared_ptr<MailServiceInterface> create(const std::string& conf_name) const;
+    std::shared_ptr<MailServiceInterface> create(const Conf&) const;
 
   private:
     MailServers(void);
@@ -45,6 +58,7 @@ namespace Crails
   public:
     operator MailServers::Conf() const { return conf; }
 
+    MailServer& backend(MailServers::Backend value) { conf.backend = value; return *this; }
     MailServer& hostname(const std::string& value) { conf.hostname = value; return *this;}
     MailServer& port(unsigned short value) { conf.port = value; return *this; }
     MailServer& use_authentication(bool value) { conf.use_authentication = value; return *this; }

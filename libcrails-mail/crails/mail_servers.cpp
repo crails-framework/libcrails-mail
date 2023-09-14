@@ -1,4 +1,5 @@
 #include "mail_servers.hpp"
+#include "smtp_mail_service.hpp"
 #include <crails/logger.hpp>
 #include <algorithm>
 #include <map>
@@ -10,30 +11,37 @@ MailServers::MailServers(void)
 {
 }
 
-void MailServers::configure_mail_server(const string& conf_name, Smtp::Server& server, std::function<void()> callback) const
+shared_ptr<MailServiceInterface> MailServers::create(const Conf& settings) const
+{
+  shared_ptr<MailServiceInterface> service;
+
+  switch (settings.backend)
+  {
+  case MailServers::SMTP:
+    service = make_shared<SmtpMailService>(settings);
+    break ;
+  case MailServers::MailGun:
+    break ;
+  }
+  return service;
+}
+
+shared_ptr<MailServiceInterface> MailServers::create(const string& conf_name) const
 {
   auto iterator = servers.find(conf_name);
 
   if (iterator != servers.end())
-    iterator->second.connect_server(server, callback);
+    return create(iterator->second);
   else
-    logger << Logger::Error << "Crails::MailServers: configuration '" << conf_name << "' not found." << Logger::endl;
+    throw boost_ext::runtime_error("mail service '" + conf_name + "' not found.");
+  return nullptr;
 }
 
 MailServers::Conf::Conf()
 {
+  backend = SMTP;
   hostname = "0.0.0.0";
   use_tls = false;
   use_authentication = false;
   port = 465;
-}
-
-void MailServers::Conf::connect_server(Smtp::Server& server, std::function<void()> callback) const
-{
-  if (use_tls)
-    server.start_tls();
-  if (use_authentication)
-    server.connect(hostname, port, username, password, authentication_protocol, callback);
-  else
-    server.connect(hostname, port, callback);
 }

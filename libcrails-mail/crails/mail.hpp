@@ -9,7 +9,10 @@
 namespace Smtp
 {
   class Server;
+}
 
+namespace Crails
+{
   class Mail : public Crails::RenderTarget
   {
     friend class Server;
