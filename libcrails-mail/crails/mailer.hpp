@@ -13,9 +13,10 @@ namespace Crails
     Mailer(Controller& controller, const std::string& configuration);
     Mailer(const std::string& configuration);
 
-    void render(const std::string& view, SharedVars = {});
-    void send(std::function<void()>);
-    void set_recipients(const std::vector<Mail::Recipient>& recipients) { mail.set_recipients(recipients); }
+    Mail& get_mail() { return mail; }
+    void  render(Controller::RenderType type, const std::string& value);
+    void  render(const std::string& view, SharedVars = {});
+    void  send(std::function<void()> = std::function<void()>());
 
   protected:
     std::shared_ptr<Controller> controller;

@@ -27,6 +27,22 @@ void Mailer::create_server()
   service->set_error_callback(std::bind(&Mailer::on_error_occured, this, std::placeholders::_1));
 }
 
+void Mailer::render(Controller::RenderType type, const string& value)
+{
+  switch (type)
+  {
+  case Controller::TEXT:
+    mail.set_content_type("text/plain");
+    break ;
+  case Controller::HTML:
+    mail.set_content_type("text/html");
+    break ;
+  default:
+    throw boost_ext::invalid_argument("unsupported render type for mails");
+  }
+  mail.set_body(value.c_str(), value.length());
+}
+
 void Mailer::render(const std::string& view, SharedVars vars)
 {
   vars = merge(vars, this->vars);
