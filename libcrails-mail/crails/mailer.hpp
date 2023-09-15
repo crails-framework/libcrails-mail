@@ -25,6 +25,7 @@ namespace Crails
     SharedVars vars;
     DataTree   params, response;
 
+    virtual void on_sent();
     virtual void on_error_occured(const std::exception&);
 
   private:

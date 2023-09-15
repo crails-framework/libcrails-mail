@@ -55,10 +55,21 @@ void Mailer::render(const std::string& view, SharedVars vars)
 
 void Mailer::send(std::function<void()> callback)
 {
-  service->connect([this, callback]()
+  auto self = shared_from_this();
+
+  service->connect([this, self, callback]()
   {
-    service->send(mail, [this, callback]() { callback(); });
+    service->send(mail, [this, self, callback]()
+    {
+      if (callback)
+        callback();
+      on_sent();
+    });
   });
+}
+
+void Mailer::on_sent()
+{
 }
 
 void Mailer::on_error_occured(const std::exception& error)
