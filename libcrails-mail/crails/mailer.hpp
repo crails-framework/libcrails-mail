@@ -18,6 +18,7 @@ namespace Crails
     void set_recipients(const std::vector<Mail::Recipient>& recipients) { mail.set_recipients(recipients); }
 
   protected:
+    std::shared_ptr<Controller> controller;
     std::shared_ptr<MailServiceInterface> service;
     Mail       mail;
     SharedVars vars;
@@ -28,7 +29,6 @@ namespace Crails
   private:
     void create_server();
 
-    std::shared_ptr<Controller> controller;
     std::string configuration;
     bool        is_connected;
   };
