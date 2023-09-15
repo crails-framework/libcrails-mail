@@ -8,6 +8,6 @@ url: https://example.org/libcrails-mail
 email: michael@unetresgrossebite.com
 depends: * build2 >= 0.15.0
 depends: * bpkg >= 0.15.0
-depends: { libcrails libcrails-controllers libcrails-renderer libcrails-semantics libcrails-encrypt } ^2.0.0
+depends: { libcrails libcrails-controllers libcrails-renderer libcrails-semantics libcrails-encrypt libcrails-http-client } ^2.0.0
 depends: libbacktrace ^1.0.0
 depends: libboost-asio >= 1.74.0

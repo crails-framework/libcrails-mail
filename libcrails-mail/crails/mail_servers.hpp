@@ -25,7 +25,8 @@ namespace Crails
     enum Backend
     {
       SMTP,
-      MailGun
+      MailGun,
+      MailGunEurope
     };
 
     class Conf

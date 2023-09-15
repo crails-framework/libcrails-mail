@@ -1,5 +1,6 @@
 #include "mail_servers.hpp"
 #include "smtp_mail_service.hpp"
+#include "mailgun_mail_service.hpp"
 #include <crails/logger.hpp>
 #include <algorithm>
 #include <map>
@@ -21,6 +22,10 @@ shared_ptr<MailServiceInterface> MailServers::create(const Conf& settings) const
     service = make_shared<SmtpMailService>(settings);
     break ;
   case MailServers::MailGun:
+    service = make_shared<MailgunService>(settings, "api.mailgun.net");
+    break ;
+  case MailServers::MailGunEurope:
+    service = make_shared<MailgunService>(settings, "api.eu.mailgun.net");
     break ;
   }
   return service;
