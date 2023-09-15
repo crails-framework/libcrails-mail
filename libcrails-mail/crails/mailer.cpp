@@ -27,10 +27,11 @@ void Mailer::create_server()
   service->set_error_callback(std::bind(&Mailer::on_error_occured, this, std::placeholders::_1));
 }
 
-void Mailer::render(const std::string& view)
+void Mailer::render(const std::string& view, SharedVars vars)
 {
-  SharedVars& vars = controller ? controller->vars : this->vars;
-
+  vars = merge(vars, this->vars);
+  if (controller)
+    vars = merge(vars, controller->vars);
   if (!params["headers"]["Accept"].exists())
     params["headers"]["Accept"] = "text/html text/plain";
   Renderer::render(view, params.as_data(), mail, vars);
