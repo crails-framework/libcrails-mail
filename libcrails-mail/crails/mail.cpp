@@ -4,6 +4,13 @@
 using namespace std;
 using namespace Crails;
 
+string Mail::Identity::to_string() const
+{
+  if (name.length() > 0)
+    return name + " < " + address + '>';
+  return address;
+}
+
 void Mail::set_header(const string& header, const string& value)
 {
   if (header == "Content-Type")

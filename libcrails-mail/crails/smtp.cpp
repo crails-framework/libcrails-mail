@@ -225,11 +225,7 @@ void Smtp::Server::smtp_data_addresses(const std::string& field, const Mail& mai
         server_message << ", ";
       else
         server_message << field << ": ";
-      if (it->name.size() > 0)
-        server_message << it->name << " <" << it->address << ">";
-      else
-        server_message << it->address;
-      server_message << "\r\n";
+      server_message << it->to_string() << "\r\n";
       ++i;
     }
   }

@@ -17,24 +17,25 @@ namespace Crails
   {
     friend class Server;
   public:
-    struct Recipient
-    {
-      Recipient() : type(0) {}
-      Recipient(const std::string& address, unsigned char type = 0) : address(address), type(type) {}
-      Recipient(const std::string& address, const std::string& name, unsigned char type = 0) : address(address), name(name), type(type) {}
-
-      bool          operator==(const std::string& address) const { return (this->address == address); }
-      std::string   address;
-      std::string   name;
-      unsigned char type;
-    };
-
-    struct Sender
+    struct Identity
     {
       std::string address;
       std::string name;
+
+      bool operator==(const std::string& address) const { return (this->address == address); }
+      std::string to_string() const;
     };
 
+    struct Recipient : public Identity
+    {
+      Recipient() : type(0) {}
+      Recipient(const std::string& address, unsigned char type = 0) : type(type) { this->address = address; }
+      Recipient(const std::string& address, const std::string& name, unsigned char type = 0) : type(type) { this->address = address; this->name = name; }
+
+      unsigned char type;
+    };
+
+    typedef Identity Sender;
     typedef std::vector<Recipient> Recipients;
 
     enum RecipientType
