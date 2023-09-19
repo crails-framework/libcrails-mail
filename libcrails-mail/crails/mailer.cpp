@@ -61,8 +61,13 @@ void Mailer::render(const string& view, SharedVars vars)
 
 void Mailer::render_content_type(const string& view, const string& type, SharedVars vars)
 {
-  params["headers"]["Accept"] = type;
-  Renderer::render(view, params.as_data(), mail, vars);
+  if (Renderer::has_renderer(view, type))
+  {
+    logger << Logger::Debug << "Rendering mail with type: " << type << Logger::endl;
+    Renderer::render(view, type, mail, vars);
+  }
+  else
+    logger << Logger::Debug << "Could not render mail with type: " << type << Logger::endl;
 }
 
 void Mailer::send(std::function<void()> callback)

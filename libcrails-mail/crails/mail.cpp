@@ -7,7 +7,7 @@ using namespace Crails;
 string Mail::Identity::to_string() const
 {
   if (name.length() > 0)
-    return name + " < " + address + '>';
+    return name + " <" + address + '>';
   return address;
 }
 

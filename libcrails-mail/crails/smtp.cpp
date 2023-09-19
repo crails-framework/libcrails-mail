@@ -194,7 +194,14 @@ void Smtp::Server::smtp_body(const Mail& mail, std::function<void()> callback)
     smtp_data_address  ("From",     sender.address, sender.name);
     // Send a message-id if possible
     if (mail.get_id() != "")
-      server_message << "Message-Id: " << mail.get_id() << "\r\n";
+      server_message << "Message-ID: " << mail.get_id() << "\r\n";
+    else
+    {
+      string domain = username.substr(username.find('@'), -1);
+      server_message << "Message-ID: <" << generate_random_string("abcd", 4)
+                     << chrono::system_clock::to_time_t(chrono::system_clock::now())
+                     << domain << ">\r\n";
+    }
     // Send the subject
     server_message << "Subject: " << mail.get_subject() << "\r\n";
     server_message << "MIME-Version: 1.0\r\n";
@@ -222,12 +229,11 @@ void Smtp::Server::smtp_body(const Mail& mail, std::function<void()> callback)
         server_message << mail.get_html();
       else
         server_message << mail.get_text();
-      // Finish the DATA stream
-      server_message << "\r\n.\r\n";
     }
     else
       throw std::runtime_error("Cannot send an empty mail");
-
+    // Finish the DATA stream
+    server_message << "\r\n.\r\n";
     smtp_write_and_read([this, callback](std::string)
     {
       callback();
