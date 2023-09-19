@@ -17,6 +17,14 @@ void Mail::set_header(const string& header, const string& value)
     content_type = value;
 }
 
+void Mail::set_body(const char* str, size_t size)
+{
+  if (content_type == "text/html")
+    html = std::string(str, size);
+  else
+    text = std::string(str, size);
+}
+
 void Mail::set_sender(const std::string& address, const std::string& name)
 {
   sender.address = address;

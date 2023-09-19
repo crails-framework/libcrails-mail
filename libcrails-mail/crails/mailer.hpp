@@ -30,6 +30,7 @@ namespace Crails
 
   private:
     void create_server();
+    void render_content_type(const std::string& view, const std::string& type, SharedVars);
 
     std::string configuration;
     bool        is_connected;

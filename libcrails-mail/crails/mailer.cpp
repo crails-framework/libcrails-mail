@@ -43,13 +43,25 @@ void Mailer::render(Controller::RenderType type, const string& value)
   mail.set_body(value.c_str(), value.length());
 }
 
-void Mailer::render(const std::string& view, SharedVars vars)
+void Mailer::render(const string& view, SharedVars vars)
 {
+  Data accept_header = params["headers"]["Accept"];
+
   vars = merge(vars, this->vars);
   if (controller)
     vars = merge(vars, controller->vars);
-  if (!params["headers"]["Accept"].exists())
-    params["headers"]["Accept"] = "text/html text/plain";
+  if (accept_header.exists())
+    render_content_type(view, accept_header.as<string>(), vars);
+  else
+  {
+    render_content_type(view, "text/html", vars);
+    render_content_type(view, "text/plain", vars);
+  }
+}
+
+void Mailer::render_content_type(const string& view, const string& type, SharedVars vars)
+{
+  params["headers"]["Accept"] = type;
   Renderer::render(view, params.as_data(), mail, vars);
 }
 

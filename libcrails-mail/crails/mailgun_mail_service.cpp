@@ -31,10 +31,10 @@ static string mail_to_body(const Mail& mail)
   body << "from="     << Url::encode(mail.get_sender().to_string())
        << "&to="      << Url::encode(format_recipients(mail.get_recipients()))
        << "&subject=" << Url::encode(mail.get_subject());
-  if (mail.get_content_type().find("html") > 0)
-    body << "&html=" << Url::encode(mail.get_body());
-  else
-    body << "&text=" << Url::encode(mail.get_body());
+  if (mail.get_html().length() > 0)
+    body << "&html=" << Url::encode(mail.get_html());
+  if (mail.get_text().length() > 0)
+    body << "&text=" << Url::encode(mail.get_text());
   if (mail.get_reply_to().length())
     body << "&h:Reply-To="   << Url::encode(mail.get_reply_to());
   if (mail.get_id().length())

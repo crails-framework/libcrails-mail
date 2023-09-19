@@ -48,24 +48,27 @@ namespace Crails
     void add_recipient(const std::string& address, const std::string& name = "", unsigned char flags = 0);
     void del_recipient(const std::string& address);
     void set_header(const std::string& header, const std::string& value) override;
-    void set_body(const char* str, size_t size) override { body = std::string(str, size); }
+    void set_body(const char* str, size_t size) override;
     const_attr_accessor(std::string&, id)
     const_attr_accessor(Sender&,      sender)
     const_attr_accessor(std::string&, subject)
     const_attr_accessor(std::string&, reply_to)
     const_attr_accessor(std::string&, content_type)
-    const_attr_accessor(Recipients&,  recipients);
+    const_attr_accessor(std::string&, charset)
+    const_attr_accessor(Recipients&,  recipients)
 
-    const std::string& get_body() const { return body; }
+    const std::string& get_html() const { return html; }
+    const std::string& get_text() const { return text; }
 
   private:
     std::string id;
     Recipients  recipients;
     Sender      sender;
     std::string subject;
-    std::string body;
+    std::string html, text;
     std::string reply_to;
     std::string content_type;
+    std::string charset = "utf-8";
   };
 }
 

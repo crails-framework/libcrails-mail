@@ -1,5 +1,6 @@
 #include <crails/utils/backtrace.hpp>
 #include <crails/utils/base64.hpp>
+#include <crails/utils/random_string.hpp>
 #include <crails/server.hpp>
 #include <crails/logger.hpp>
 #include <crails/md5.hpp>
@@ -191,19 +192,42 @@ void Smtp::Server::smtp_body(const Mail& mail, std::function<void()> callback)
     if (mail.get_reply_to() != "")
       smtp_data_address("Reply-To", mail.get_reply_to(), "");
     smtp_data_address  ("From",     sender.address, sender.name);
-    // Send the content type if necessary
-    if (mail.get_content_type() != "")
-    {
-      server_message << "MIME-Version: 1.0\r\n";
-      server_message << "Content-Type: " << mail.get_content_type() << "\r\n";
-    }
     // Send a message-id if possible
     if (mail.get_id() != "")
       server_message << "Message-Id: " << mail.get_id() << "\r\n";
     // Send the subject
     server_message << "Subject: " << mail.get_subject() << "\r\n";
-    // Send the body and finish the DATA stream
-    server_message << mail.get_body() << "\r\n.\r\n";
+    server_message << "MIME-Version: 1.0\r\n";
+    // Send the mail using multipart if both formats are present
+    if (mail.get_html().length() > 0 && mail.get_text().length() > 0)
+    {
+      string boundary = Crails::generate_random_string("abcd01234", 6);
+      server_message << "Content-Type: multipart/alternative;boundary=" + boundary + "\r\n";
+      server_message << "\r\n\r\n--" << boundary << "\r\n";
+      server_message << "Content-Type: text/html;charset="
+                     << mail.get_charset() << "\r\n\r\n";
+      server_message << mail.get_html();
+      server_message << "\r\n\r\n--" << boundary << "\r\n";
+      server_message << "Content-Type: text/plain;charset="
+                     << mail.get_charset() << "\r\n\r\n";
+      server_message << mail.get_text();
+      server_message << "\r\n\r\n--" << boundary << "--\r\n";
+    }
+    // Otherwise, just send mail in the last type that's been rendered
+    else if (mail.get_content_type().length())
+    {
+      server_message << "Content-Type: " << mail.get_content_type()
+                     << ";charset=" << mail.get_charset() << "\r\n";
+      if (mail.get_html().length())
+        server_message << mail.get_html();
+      else
+        server_message << mail.get_text();
+      // Finish the DATA stream
+      server_message << "\r\n.\r\n";
+    }
+    else
+      throw std::runtime_error("Cannot send an empty mail");
+
     smtp_write_and_read([this, callback](std::string)
     {
       callback();
