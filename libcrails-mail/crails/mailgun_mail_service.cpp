@@ -8,7 +8,9 @@ using namespace Crails;
 
 static string authorization_header(const MailServers::Conf& settings)
 {
-  return "Basic " + base64_encode(settings.username + ':' + settings.password);
+  string username = settings.username.length() ? settings.username : string("api");
+
+  return "Basic " + base64_encode(username + ':' + settings.password);
 }
 
 static string format_recipients(const vector<Mail::Recipient>& recipients)
