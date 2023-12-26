@@ -47,10 +47,10 @@ namespace Crails
     std::shared_ptr<MailServiceInterface> create(const std::string& conf_name) const;
     std::shared_ptr<MailServiceInterface> create(const Conf&) const;
 
-  private:
+  protected:
     MailServers(void);
 
-    static const List servers;
+    List servers;
   };
 
   class MailServer
