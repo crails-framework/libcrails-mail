@@ -10,7 +10,7 @@ namespace Crails
   class MailgunService : public MailServiceInterface
   {
   public:
-    MailgunService(const MailServers::Conf& ssettings, const std::string& domain);
+    MailgunService(const MailServers::Conf& settings, const std::string& domain);
     ~MailgunService();
 
     void connect(std::function<void()> callback) override;

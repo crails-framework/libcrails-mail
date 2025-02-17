@@ -49,7 +49,7 @@ void Mailer::render(const string& view, SharedVars vars)
 
   vars = merge(vars, this->vars);
   if (controller)
-    vars = merge(vars, controller->vars);
+    vars = merge(vars, controller->get_vars());
   if (accept_header.exists())
     render_content_type(view, accept_header.as<string>(), vars);
   else
