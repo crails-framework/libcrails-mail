@@ -6,10 +6,7 @@ using namespace std;
 using namespace Crails;
 
 Mailer::Mailer(Controller& controller, const std::string& configuration) :
-  controller(
-    controller.shared_from_this(),
-    reinterpret_cast<Controller*>(controller.shared_from_this().get())
-  ),
+  controller(static_pointer_cast<Controller>(controller.shared_from_this())),
   configuration(configuration),
   is_connected(false)
 {

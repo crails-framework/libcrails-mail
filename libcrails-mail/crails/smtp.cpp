@@ -183,7 +183,6 @@ void Smtp::Server::smtp_body(const Mail& mail, std::function<void()> callback)
     // Setting the headers
     smtp_data_addresses("To",       mail, 0);
     smtp_data_addresses("Cc",       mail, Mail::CarbonCopy);
-    smtp_data_addresses("Bcc",      mail, Mail::CarbonCopy | Mail::Blind);
     if (mail.get_reply_to() != "")
       smtp_data_address("Reply-To", mail.get_reply_to(), "");
     smtp_data_address  ("From",     sender.address, sender.name);
@@ -219,7 +218,7 @@ void Smtp::Server::smtp_body(const Mail& mail, std::function<void()> callback)
     else if (mail.get_content_type().length())
     {
       server_message << "Content-Type: " << mail.get_content_type()
-                     << ";charset=" << mail.get_charset() << "\r\n";
+                     << ";charset=" << mail.get_charset() << "\r\n\r\n";
       if (mail.get_html().length())
         server_message << mail.get_html();
       else
@@ -244,7 +243,11 @@ void Smtp::Server::smtp_data_addresses(const std::string& field, const Mail& mai
 
   for (; it != end ; ++it)
   {
-    if (it->type == flag)
+    bool matches = flag == 0
+      ? it->type == 0
+      : (it->type & flag) == flag;
+
+    if (matches)
     {
       if (i != 0)
         server_message << ", ";
@@ -263,17 +266,21 @@ void Smtp::Server::smtp_data_address(const std::string& field, const std::string
 
 void Smtp::Server::smtp_recipients(const Mail& mail, std::function<void()> callback)
 {
-  auto it  = mail.get_recipients().begin();
-  auto end = mail.get_recipients().end();
-  
-  for (; it != end ; ++it)
+  smtp_recipient(mail.get_recipients().begin(), mail.get_recipients().end(), callback);
+}
+
+void Smtp::Server::smtp_recipient(Mail::Recipients::const_iterator it, Mail::Recipients::const_iterator end, std::function<void()> callback)
+{
+  if (it != end)
   {
     server_message << "RCPT TO: <" << it->address << ">\r\n";
-    smtp_write_and_read([this, callback](std::string)
+    smtp_write_and_read([this, it, end, callback](std::string)
     {
-      callback();
+      smtp_recipient(std::next(it), end, callback);
     });
   }
+  else
+    callback();
 }
 
 void Smtp::Server::smtp_new_mail(const Mail& mail, std::function<void()> callback)
@@ -298,7 +305,7 @@ void Smtp::Server::smtp_handshake(std::function<void()> callback)
     smtp_read_answer(220, [this, callback](std::string message)
     {
       server_id = message;
-      server_message << "HELO " << sock.remote_endpoint().address().to_string() << "\r\n";
+      server_message << "HELO " << sock.local_endpoint().address().to_string() << "\r\n";
       smtp_write_and_read(250, [this, callback](std::string)
       {
         server_message << "STARTTLS" << "\r\n";
@@ -306,6 +313,8 @@ void Smtp::Server::smtp_handshake(std::function<void()> callback)
         {
           boost::system::error_code error;
           ssl_sock.handshake(SslSocket::client, error);
+          if (error)
+            throw boost_ext::runtime_error("Smtp::Server: TLS handshake failed: " + error.message());
           tls_enabled = true;
           smtp_handshake_end(callback);
         });
@@ -324,7 +333,7 @@ void Smtp::Server::smtp_handshake(std::function<void()> callback)
 
 void Smtp::Server::smtp_handshake_end(std::function<void()> callback)
 {
-  server_message << "HELO " << sock.remote_endpoint().address().to_string() << "\r\n";
+  server_message << "HELO " << sock.local_endpoint().address().to_string() << "\r\n";
   smtp_write_and_read(250, [this, callback](std::string)
   {
     logger << Logger::Debug << "Crails::Smtp::Server::smtp_handshake over" << Logger::endl;
@@ -334,7 +343,7 @@ void Smtp::Server::smtp_handshake_end(std::function<void()> callback)
 
 void Smtp::Server::smtp_ehlo(std::function<void()> callback)
 {
-  server_message << "EHLO " << sock.remote_endpoint().address().to_string() << "\r\n";
+  server_message << "EHLO " << sock.local_endpoint().address().to_string() << "\r\n";
   smtp_write_and_read(250, [this, callback](std::string answer)
   {
     logger << Logger::Debug << "Crails::Smtp::Server::EHLO: " << answer << Logger::endl;

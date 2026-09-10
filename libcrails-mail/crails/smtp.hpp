@@ -45,6 +45,7 @@ namespace Smtp
     void smtp_ehlo(std::function<void()>);
     void smtp_body(const Crails::Mail& mail, std::function<void()>);
     void smtp_recipients(const Crails::Mail& mail, std::function<void()>);
+    void smtp_recipient(Crails::Mail::Recipients::const_iterator from, Crails::Mail::Recipients::const_iterator to, std::function<void()> callback);
     void smtp_new_mail(const Crails::Mail& mail, std::function<void()>);
     void smtp_handshake(std::function<void()>);
     void smtp_handshake_end(std::function<void()> callback);
