@@ -22,19 +22,14 @@ Smtp::Server::Server() :
 
 void Smtp::Server::connect(const std::string& hostname, unsigned short port, std::function<void()> callback)
 {
-  boost::system::error_code error = boost::asio::error::host_not_found;
+  boost::system::error_code error;
   tcp::resolver             resolver(Crails::Server::get_io_context());
-  tcp::resolver::query      query(hostname, std::to_string(port));
-  tcp::resolver::iterator   endpoint_iterator = resolver.resolve(query);
-  tcp::resolver::iterator   end;
+  auto                      endpoints = resolver.resolve(hostname, std::to_string(port), error);
 
   logger << Logger::Debug << "Crails::Smtp::Server::connect to " << hostname << ':' << port << Logger::endl;
-  while (error && endpoint_iterator != end)
-  {
-    sock.close();
-    sock.connect(*endpoint_iterator++, error);
-    logger << "Crails::Smtp::Server::connect: connected to endpoint iterator" << Logger::endl;
-  }
+  if (error)
+    throw boost_ext::runtime_error("Cannot resolve " + hostname);
+  boost::asio::connect(sock, endpoints, error);
   if (error)
     throw boost_ext::runtime_error("Cannot connect to " + hostname);
   smtp_handshake(callback);
