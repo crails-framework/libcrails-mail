@@ -49,6 +49,7 @@ namespace Crails
 
   protected:
     MailServers(void);
+    virtual ~MailServers() = default;
 
     List servers;
   };

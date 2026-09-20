@@ -12,6 +12,7 @@ namespace Crails
   public:
     Mailer(Controller& controller, const std::string& configuration);
     Mailer(const std::string& configuration);
+    virtual ~Mailer() = default;
 
     Mail& get_mail() { return mail; }
     void  render(Controller::RenderType type, const std::string& value);

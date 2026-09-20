@@ -7,7 +7,7 @@
 
 namespace Crails
 {
-  class MailgunService : public MailServiceInterface
+  class MailgunService final : public MailServiceInterface
   {
   public:
     MailgunService(const MailServers::Conf& settings, const std::string& domain);

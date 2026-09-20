@@ -6,7 +6,7 @@
 
 namespace Crails
 {
-  struct SmtpMailService : public MailServiceInterface
+  struct SmtpMailService final : public MailServiceInterface
   {
   public:
     SmtpMailService(const MailServers::Conf& settings);
