@@ -45,19 +45,20 @@ static string mail_to_body(const Mail& mail)
 }
 
 MailgunService::MailgunService(const MailServers::Conf& settings, const string& domain) :
-  settings(settings), domain(domain), http(this->domain)
+  settings(settings), domain(domain)
 {
+  http = std::make_shared<Ssl::Client>(this->domain);
 }
 
 MailgunService::~MailgunService()
 {
-  try { http.disconnect(); }
+  try { http->disconnect(); }
   catch (boost::system::system_error) { }
 }
 
 void MailgunService::connect(function<void()> callback)
 {
-  http.connect();
+  http->connect();
   callback();
 }
 
@@ -74,7 +75,7 @@ void MailgunService::send(const Mail& mail, function<void()> callback)
   request.set(HttpHeader::host, domain);
   request.set(HttpHeader::content_type, "application/x-www-form-urlencoded");
   request.set(HttpHeader::content_length, to_string(request.body().length()));
-  http.async_query(request, [this, callback](const Client::Response& response, boost::beast::error_code error)
+  http->async_query(request, [this, callback](const Client::Response& response, boost::beast::error_code error)
   {
     if (error)
       error_occured(error);

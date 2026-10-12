@@ -34,7 +34,7 @@ namespace Crails
 
     const MailServers::Conf& settings;
     std::string domain;
-    Ssl::Client http;
+    std::shared_ptr<Ssl::Client> http;
     std::function<void(const std::exception&)> error_callback;
   };
 }
